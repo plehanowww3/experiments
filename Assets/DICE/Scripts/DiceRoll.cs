@@ -9,6 +9,7 @@ namespace DICE.Scripts
         [SerializeField] private float maxRandomForce;
         [SerializeField] private float maxRollingForce;
         [SerializeField] private Rigidbody m_rigidbody;
+        [SerializeField] private BoxCollider m_collider;
         
         private float forceX;
         private float forceY;
@@ -32,31 +33,44 @@ namespace DICE.Scripts
                 RollDice();
             }
         }
-
-        private void RollDice()
+        
+        private int RandomSign()
         {
-            m_rigidbody.isKinematic = false;
-
-            var minForce = maxRandomForce * 0.1f;
-            forceX = Random.Range(minForce, maxRandomForce);
-            forceY = Random.Range(minForce, maxRandomForce);
-            forceZ = Random.Range(minForce, maxRandomForce);
-            
-            Debug.Log($"forceX - {forceX}\n forceY - {forceY}\n forceZ - {forceZ}\n");
-
-            var randomMassPlus = Random.Range(-1, 1);
-            m_rigidbody.mass = m_startMass + randomMassPlus * m_startMass * 0.3f;
-            
-            var randomDragPlus = Random.Range(0, 0.2f);
-            m_rigidbody.drag = 0 + randomDragPlus;
-
-            Vector3 randomForce = new Vector3(Random.Range(-maxRandomForce, maxRandomForce), Random.Range(-maxRandomForce, maxRandomForce), Random.Range(-maxRandomForce, maxRandomForce)).normalized;
-            m_rigidbody.AddTorque(randomForce, ForceMode.Impulse);
-            m_rigidbody.AddTorque(forceX, forceY, forceZ, ForceMode.Impulse);
-            m_rigidbody.AddForceAtPosition(Vector3.up * maxRollingForce, new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)));
-
+            return Random.Range(0, 2) * 2 - 1; // Возвращает 1 или -1
         }
         
-        
+        private void RollDice()
+        {
+            m_collider.isTrigger = true;
+            
+            forceX = Random.Range(-maxRandomForce, maxRandomForce) * 10;
+            forceY = Random.Range(-maxRandomForce, maxRandomForce) * 10;
+            forceZ = Random.Range(-maxRandomForce, maxRandomForce) * 10;
+            
+            switch (Random.Range(0, 3))
+            {
+                case 0:
+                    forceX = maxRandomForce * RandomSign();
+                    break;
+                case 1: 
+                    forceY = maxRandomForce * RandomSign();
+                    break;
+                case 2: 
+                    forceZ = maxRandomForce * RandomSign();
+                    break;
+            }
+            
+            m_rigidbody.AddTorque(forceX, forceY, forceZ, ForceMode.Impulse);
+            
+            // Случайная точка приложения силы вблизи центра кубика
+            Vector3 forcePoint = transform.position + Random.insideUnitSphere * 1f;
+
+            m_rigidbody.AddForceAtPosition(Vector3.up * maxRollingForce, forcePoint, ForceMode.Impulse);
+        }
+
+        private void OnTriggerEnter(Collider other)
+        {
+            m_collider.isTrigger = false;
+        }
     }
 }
